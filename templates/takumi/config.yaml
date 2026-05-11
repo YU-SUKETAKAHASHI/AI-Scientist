@@ -51,7 +51,9 @@ inner_loop:
 # ---------------------------------------------------------------------------
 models:
   articulator: claude-opus-4-7      # Expert 意識層 (Stage 1/2 の Skills 生成)
-  mutator: claude-sonnet-4-6        # Novice 意識層 (network mutation 提案)
+  mutator: claude-haiku-4-5         # Novice 意識層. A1_v3 で品質が十分と確認し、
+                                    # sonnet → haiku に変更 (cost ~1/3). caching の
+                                    # 最小 prefix は haiku で 2048 tokens.
 
 # ---------------------------------------------------------------------------
 # LLM call parameters
@@ -64,7 +66,9 @@ articulator_params:
 
 mutator_params:
   temperature: 0.5              # 構造化 YAML の安定性優先で控えめ
-  max_tokens: 1500              # mutations list は短いはず
+  max_tokens: 3000              # A1_v3 で reasoning truncate 多発 → 1500 → 3000
+                                # に拡張. 失敗 cycle (output が上限到達で YAML 途切れ)
+                                # の解消が目的.
   max_retries: 3                # YAML parse / apply 失敗時の retry 上限
   max_mutations_per_cycle: 10    # 1 cycle あたりの mutation 数上限 (prompt 制約)
 

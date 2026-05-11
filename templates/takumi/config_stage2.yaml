@@ -25,7 +25,7 @@ inner_loop:
 
 models:
   articulator: claude-opus-4-7        # Stage 2 では genome 解釈が要るので Opus 維持
-  mutator: claude-sonnet-4-6          # Mutator 側は Stage 1/2 で同じ
+  mutator: claude-haiku-4-5           # Mutator 側は Stage 1/2 で同じ. main config と同期.
 
 articulator_params:
   temperature: 0.7
@@ -35,7 +35,7 @@ articulator_params:
 
 mutator_params:
   temperature: 0.5
-  max_tokens: 1500
+  max_tokens: 3000              # main config と同期 (truncation 防止)
   max_retries: 3
   max_mutations_per_cycle: 6
 

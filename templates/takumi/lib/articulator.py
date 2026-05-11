@@ -57,46 +57,78 @@ SECTION_TITLES: Dict[str, str] = {
 
 SECTION_DESCRIPTIONS: Dict[str, str] = {
     "S3": (
-        "Identify rally phases (e.g., serve, return, defense, rally, finish) and the "
-        "telltale state signatures of each phase. Use phase labels from the trajectory."
+        "Decompose play into rally phases (e.g., serve, approach, contact, recovery, idle). "
+        "For each phase, give (a) a one-line definition, (b) the observation pattern that "
+        "marks its onset (e.g., 'ball.vx changes sign'), and (c) the dominant action class "
+        "the expert takes. Infer phases from the trajectory — phase labels are NOT provided. "
+        "Target: 4-6 phases."
     ),
     "S4": (
-        "Enumerate the key state combinations that determine which action the expert "
-        "takes (e.g., when ball is high and opp is far → jump and forward)."
+        "Distill the expert's decision logic into 6-10 production rules of the form "
+        "`IF <condition on observation> THEN <action>`, where conditions use the 12-dim "
+        "obs vocabulary (agent.x, ball.vy, etc.) and actions are subsets of {left, right, "
+        "jump}. Rules should be discrete, near-mutually-exclusive, and together cover the "
+        "phases in S3. Ground each rule in at least one trajectory moment."
     ),
     "S5": (
-        "Quote 3-5 short trajectory excerpts (a few timesteps each) as concrete examples "
-        "of expert play. Refer to (t, o, a) entries, e.g., '(t=120, ball.vy<0 → jump)'."
+        "Cite 3-5 worked examples (≤5 timesteps each) drawn from DIFFERENT phases of S3. "
+        "Format: `(t=120, ball=(0.4,0.7,vy=-0.2), opp.x=-0.5) → JUMP` + one-sentence "
+        "rationale (why this action, not the alternatives). Prefer non-obvious moments "
+        "where the expert's choice deviates from a naive heuristic."
     ),
     "S6": (
-        "List counter-examples / Gotchas — what a novice MUST NOT do. Include obvious "
-        "traps (e.g., do not jump when ball is far; do not stand still when ball "
-        "approaches)."
+        "5-8 anti-patterns the novice must avoid, each as `NEVER <action> WHEN <condition>` "
+        "+ a one-line reason. Prioritise mistakes a randomly-initialised novice is most "
+        "likely to make: reflexive jumping when the ball is far, idling when the ball "
+        "approaches, double-commitment (left+right). Where useful, contrast with an S5 "
+        "excerpt where the expert pointedly did NOT do the obvious thing."
     ),
     "S7": (
-        "External focus cues: direct attention to the *effect* on the environment, e.g., "
-        "'aim the ball at the back corner', 'time the contact'."
+        "External-focus cues (Wulf, 2013): 4-6 directives that point the novice's attention "
+        "AWAY from the body and TOWARD the ball, opponent, or environmental effect to "
+        "produce. Examples: 'send the ball to the back corner', 'meet the ball at its "
+        "peak', 'shadow the opponent's x-position'. Phrase as imperatives."
     ),
     "S8": (
-        "Internal focus cues (control condition; expected to be less effective): direct "
-        "attention to body mechanics, e.g., 'bend knees deeply', 'extend the arm'."
+        "Internal-focus cues (Wulf control condition): 4-6 directives that point the "
+        "novice's attention TOWARD its own body and movement mechanics — joint extension, "
+        "timing relative to its own posture, effort level. Examples: 'extend the leg "
+        "fully at jump apex', 'plant before pushing off'. WRITE WITH THE SAME CARE AS S7 — "
+        "the experiment tests whether external > internal, not whether S7 was written "
+        "better than S8."
     ),
     "S9": (
-        "Metaphor / analogy that captures the playstyle (e.g., 'stay between the ball "
-        "and the back wall like a goalkeeper')."
+        "One or two unifying metaphors capturing the expert's overall stance — defensive "
+        "wall vs opportunistic counter-puncher, anticipatory vs reactive, etc. Vivid "
+        "enough to bias the novice's global posture. Avoid trivial restatements "
+        "('be like a slime')."
     ),
     "S10": (
-        "Japanese onomatopoeia (擬音語) that encodes timing/feel (e.g., 'ピョン' for a "
-        "small hop, 'ガツン' for a hard hit). Include 3-5 with what they refer to."
+        "Re-narrate the expert's play using Japanese onomatopoeia (擬音語/擬態語) as the "
+        "primary descriptive vocabulary, mirroring the phase decomposition of S3. For each "
+        "phase in S3, describe what the expert does and how it feels timing-wise, with "
+        "onomatopoeia embedded directly in the action descriptions. DO NOT gloss or "
+        "explain the onomatopoeia themselves — let them function as description. "
+        "Example: 'approach phase: the slime スッと shifts under the ball's landing "
+        "spot, タメて waits half a beat, タンッと plants and pushes off'. Cover every "
+        "phase from S3. The hypothesis is that onomatopoeia-laden narration transmits "
+        "the timing and feel that plain prose cannot."
     ),
     "S11": (
-        "Statistics summarising the expert's behaviour (e.g., jump rate, mean ball "
-        "contact y-position, action distribution per phase)."
+        "Compact quantitative profile of the expert, computed from the trajectory. "
+        "Present as a markdown table. Include at minimum: (a) global action frequency "
+        "for {left, right, jump, no-op}, (b) action distribution per S3 phase, (c) mean "
+        "and std of ball.y at the moment of jump, (d) mean horizontal distance kept "
+        "from the opponent. Numbers, not adjectives."
     ),
     "S12": (
-        "Stage-conditional cues: split advice into novice / intermediate / expert stages "
-        "(守破離 / Fitts-Posner). The Mutator selects the stage based on its current "
-        "performance."
+        "Three stage-conditional advice sets indexed by the novice's current proficiency "
+        "(Mutator selects stage from its rolling eval score). Stage 守 (basic): "
+        "positioning, ball tracking, never-no-op-near-ball. Stage 破 (intermediate): "
+        "apply S4 production rules, respect S6 anti-patterns. Stage 離 (advanced): "
+        "exploit S7 external-focus targeting, refine timing per S10. (Fitts & Posner "
+        "1967; 守破離.) Each stage: 3-5 directives, written in stage-appropriate "
+        "vocabulary."
     ),
 }
 

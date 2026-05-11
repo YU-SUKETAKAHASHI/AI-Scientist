@@ -21,7 +21,7 @@ inner_loop:
 
 models:
   articulator: claude-opus-4-7
-  mutator: claude-sonnet-4-6
+  mutator: claude-haiku-4-5
 
 articulator_params:
   temperature: 0.7
@@ -31,7 +31,7 @@ articulator_params:
 
 mutator_params:
   temperature: 0.5
-  max_tokens: 1500
+  max_tokens: 3000
   max_retries: 3
   max_mutations_per_cycle: 6
 
