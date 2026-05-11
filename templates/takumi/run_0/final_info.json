@@ -1,0 +1,30 @@
+{
+  "skills_format_eval": {
+    "means": {
+      "fitness_mean_100ep": -4.85,
+      "fitness_std_100ep": 0.35707142142714254,
+      "delta_score_vs_a0": 0.0,
+      "win_rate_at_best_cycle": 0.0,
+      "best_cycle_index": 5,
+      "learning_curve_scores": [
+        -35.0,
+        -36.0,
+        -37.0,
+        -31.0,
+        -30.0,
+        -28.0,
+        -32.0,
+        -37.0,
+        -35.0,
+        -39.0
+      ],
+      "final_network_nodes": 15,
+      "final_network_links": 36,
+      "components_used": "S1+S2",
+      "stage": "stage_1",
+      "n_cycles": 10,
+      "mutator_calls": 10,
+      "skills_file_token_count": 101
+    }
+  }
+}

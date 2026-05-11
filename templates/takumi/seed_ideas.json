@@ -1,0 +1,58 @@
+[
+  {
+    "Name": "minimal_anthropic_spec",
+    "Title": "Anthropic SKILL.md spec equivalent (S1+S2+S6)",
+    "Experiment": "Set FORMAT_HYPOTHESIS to {\"components\": [\"S6\"], \"instructions\": \"SKILL.md-style: Goal, Rules, Counter-examples only.\"}.",
+    "Interestingness": 6,
+    "Feasibility": 9,
+    "Novelty": 4
+  },
+  {
+    "Name": "human_pedagogy_predicted",
+    "Title": "Human pedagogy literature predicted (S3+S7+S9)",
+    "Experiment": "Set FORMAT_HYPOTHESIS to {\"components\": [\"S3\", \"S7\", \"S9\"], \"instructions\": \"Phase markers + external focus + analogy, predicted strong by Wulf 2013 + Nonaka externalization.\"}.",
+    "Interestingness": 9,
+    "Feasibility": 9,
+    "Novelty": 8
+  },
+  {
+    "Name": "full_skills",
+    "Title": "Upper-bound reference: all variable sections (S3..S12)",
+    "Experiment": "Set FORMAT_HYPOTHESIS to {\"components\": [\"S3\", \"S4\", \"S5\", \"S6\", \"S7\", \"S8\", \"S9\", \"S10\", \"S11\", \"S12\"], \"instructions\": \"All ablation variables on; this is the upper-bound reference.\"}.",
+    "Interestingness": 7,
+    "Feasibility": 8,
+    "Novelty": 5
+  },
+  {
+    "Name": "trajectory_exemplars_only",
+    "Title": "Trace inheritance: only trajectory exemplars (S5)",
+    "Experiment": "Set FORMAT_HYPOTHESIS to {\"components\": [\"S5\"], \"instructions\": \"Just concrete (t,o,a) trajectory excerpts; no abstract advice.\"}.",
+    "Interestingness": 8,
+    "Feasibility": 9,
+    "Novelty": 7
+  },
+  {
+    "Name": "japan_specific_onomatopoeia",
+    "Title": "Japan-specific contribution: onomatopoeia in coaching (S3+S10)",
+    "Experiment": "Set FORMAT_HYPOTHESIS to {\"components\": [\"S3\", \"S10\"], \"instructions\": \"Phase markers paired with Japanese onomatopoeia (擬音語).\"}.",
+    "Interestingness": 8,
+    "Feasibility": 9,
+    "Novelty": 9
+  },
+  {
+    "Name": "shuhari_stage_conditional",
+    "Title": "守破離 stage-conditional advice (S3+S12)",
+    "Experiment": "Set FORMAT_HYPOTHESIS to {\"components\": [\"S3\", \"S12\"], \"instructions\": \"Phase markers + dynamic stage-conditional cues, mirroring the 守破離 narrative.\"}.",
+    "Interestingness": 9,
+    "Feasibility": 9,
+    "Novelty": 8
+  },
+  {
+    "Name": "internal_focus_control",
+    "Title": "Control: internal focus alone (S8) — expected to underperform external focus",
+    "Experiment": "Set FORMAT_HYPOTHESIS to {\"components\": [\"S8\"], \"instructions\": \"Negative-control hypothesis from Wulf 2013: internal focus on body mechanics should be less effective than external focus.\"}.",
+    "Interestingness": 7,
+    "Feasibility": 9,
+    "Novelty": 6
+  }
+]

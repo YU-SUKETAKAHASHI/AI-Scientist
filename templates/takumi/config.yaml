@@ -1,0 +1,117 @@
+# Takumi 実験設定 (実験者が編集する正本)
+#
+# このファイルは Aider の編集対象から除外される (templates/takumi/lib/ と同じ扱い).
+# AI Scientist の outer loop が iterate するのは experiment.py の FORMAT_HYPOTHESIS
+# だけ. Stage 設定 / inner loop の長さ / LLM model / temperature 等の
+# experimental condition は本ファイルで実験者が固定する.
+#
+# 仕様書 §6 後半「Stage 1/Stage 2 を 2 つの別 template として並走させる」を
+# config 切替えで実現する: stage を 1 と 2 に切替えて outer loop を 2 回回す.
+
+# ---------------------------------------------------------------------------
+# Experimental condition (実験者が手で切替える主軸)
+# ---------------------------------------------------------------------------
+experiment:
+  # Articulator の access mode.
+  #   1 = trajectory のみ (Polanyi の "we know more than we can tell" 厳密実装)
+  #   2 = trajectory + expert genome YAML
+  # サブ目的 (cognition measurement) の検証は同一 components を 1/2 で走らせて Δ を比較.
+  stage: 1
+
+  # 出力 run の prefix (任意のラベル). final_info.json には記録されないが運用上の目印.
+  run_label: "stage1_default"
+
+# ---------------------------------------------------------------------------
+# Environment backend (§4 / §5)
+# ---------------------------------------------------------------------------
+env:
+  # "jax" = EvoJAX 版 SlimeVolley (Part 1 流用、ref_implementations/evojax/).
+  #         vmap 並列の 100-ep eval、test/training mode の正しい区別あり.
+  # "gym" = slimevolleygym (PyPI 版、5-life 固定). legacy.
+  backend: jax
+
+  # Training mode で trajectory を取るときの max_steps (full 3000 step プレイ).
+  training_max_steps: 3000
+
+  # 5-life evaluation mode の max_steps (life=0 で early stop あり).
+  test_max_steps: 3000
+
+# ---------------------------------------------------------------------------
+# Inner loop control (§5)
+# ---------------------------------------------------------------------------
+inner_loop:
+  K: 10                       # cycle 数 (仕様書 §5 Step 3、勝手に増やさない: NG #7)
+  eval_episodes: 100          # best_cycle network の評価 episode 数 (§8)
+  seed: 0                     # novice init + episode seed の base
+  subsample_interval: 10      # trajectory 内 step 間隔 (§4.4、N=1 にしない: NG #4)
+  max_steps_per_episode: 3000
+
+# ---------------------------------------------------------------------------
+# LLM model selection
+# ---------------------------------------------------------------------------
+models:
+  articulator: claude-opus-4-7      # Expert 意識層 (Stage 1/2 の Skills 生成)
+  mutator: claude-sonnet-4-6        # Novice 意識層 (network mutation 提案)
+
+# ---------------------------------------------------------------------------
+# LLM call parameters
+# ---------------------------------------------------------------------------
+articulator_params:
+  temperature: 0.7              # 高い創造性 (Skills の richness 用)
+  max_tokens: 4096              # Skills file の上限 (~1500 tokens 想定 + safety)
+  max_retries: 3                # section 欠落 / API エラーでの retry 上限
+  trajectory_episodes: 1        # prompt に乗せる episode 数 (lost-in-the-middle 対策)
+
+mutator_params:
+  temperature: 0.5              # 構造化 YAML の安定性優先で控えめ
+  max_tokens: 1500              # mutations list は短いはず
+  max_retries: 3                # YAML parse / apply 失敗時の retry 上限
+  max_mutations_per_cycle: 10    # 1 cycle あたりの mutation 数上限 (prompt 制約)
+
+# ---------------------------------------------------------------------------
+# Dynamic stage label heuristic (S12 用、Mutator prompt に渡す)
+# ---------------------------------------------------------------------------
+stage_label:
+  novice_below: -2.0            # 直近平均がこれ未満 → "novice"
+  expert_above: 2.0             # 直近平均がこれ以上 → "expert"
+  window: 3                     # 直近 N cycle の平均で判定
+
+# ---------------------------------------------------------------------------
+# Visualization (per-cycle topology + end-of-loop fitness curve)
+# ---------------------------------------------------------------------------
+visualization:
+  # 全体 ON/OFF (false にすると per-cycle PNG 生成も学習曲線も skip).
+  enabled: true
+
+  # 各 cycle 後 (mutator 適用直後) に <out_dir>/topology/cycle_NNN.png を保存.
+  per_cycle_topology: true
+
+  # 初期化直後 (cycle 0 の play 前) のネットワークも 1 枚保存する.
+  include_init_topology: true
+
+  # Inner loop 終了時に <out_dir>/learning_curve.png を保存.
+  end_of_loop_curve: true
+
+  # Best Network のプレイ動画を <out_dir>/best_play.gif に保存.
+  gameplay_gif: true
+  gif_max_steps: 1000          # GIF 内の最大 step 数 (短いほどファイル小)
+  gif_n_trials: 5              # 並列に走らせる試合数、最高 score の試合を録画
+  gif_seed: 0                  # JAX random key の base
+
+  # 解像度.
+  topology_dpi: 120
+  curve_dpi: 140
+
+# ---------------------------------------------------------------------------
+# Budget control ($USD, 仕様書 §「予算管理」)
+# ---------------------------------------------------------------------------
+budget:
+  warning_threshold_usd: 70.0   # 1 度だけ print warning
+  hard_limit_usd: 95.0          # 超えたら RuntimeError("budget exceeded")
+
+# ---------------------------------------------------------------------------
+# Data paths (templates/takumi/ 起点の相対パス)
+# ---------------------------------------------------------------------------
+data:
+  expert_trajectory: data/expert_trajectory.yaml
+  expert_genome: data/expert_genome.yaml

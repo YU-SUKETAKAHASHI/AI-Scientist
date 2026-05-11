@@ -1,0 +1,115 @@
+nodes:
+  - id: bias
+    type: bias
+    activation: linear
+    label: bias_const_1
+  - id: in_0
+    type: input
+    activation: linear
+    label: agent_x
+  - id: in_1
+    type: input
+    activation: linear
+    label: agent_y
+  - id: in_2
+    type: input
+    activation: linear
+    label: agent_vx
+  - id: in_3
+    type: input
+    activation: linear
+    label: agent_vy
+  - id: in_4
+    type: input
+    activation: linear
+    label: ball_x
+  - id: in_5
+    type: input
+    activation: linear
+    label: ball_y
+  - id: in_6
+    type: input
+    activation: linear
+    label: ball_vx
+  - id: in_7
+    type: input
+    activation: linear
+    label: ball_vy
+  - id: in_8
+    type: input
+    activation: linear
+    label: opp_x
+  - id: in_9
+    type: input
+    activation: linear
+    label: opp_y
+  - id: in_10
+    type: input
+    activation: linear
+    label: opp_vx
+  - id: in_11
+    type: input
+    activation: linear
+    label: opp_vy
+  - id: out_0
+    type: output
+    activation: tanh
+    label: left
+  - id: out_1
+    type: output
+    activation: tanh
+    label: right
+  - id: out_2
+    type: output
+    activation: tanh
+    label: jump
+  - id: h_32
+    type: hidden
+    activation: tanh
+edges:
+  - from: in_0
+    to: out_0
+    weight: 2.0
+  - from: in_4
+    to: out_0
+    weight: -2.0
+  - from: in_6
+    to: out_0
+    weight: -0.924631
+  - from: bias
+    to: out_1
+    weight: 0.232152
+  - from: in_0
+    to: out_1
+    weight: -2.0
+  - from: in_4
+    to: out_1
+    weight: 1.849117
+  - from: in_1
+    to: out_2
+    weight: 0.311595
+  - from: in_7
+    to: h_32
+    weight: 1.795006
+  - from: h_32
+    to: out_2
+    weight: -1.078286
+  - from: bias
+    to: h_32
+    weight: -1.600644
+  - from: in_3
+    to: h_32
+    weight: 0.973761
+  - from: in_5
+    to: h_32
+    weight: 2.0
+  - from: in_10
+    to: h_32
+    weight: -1.338079
+  - from: in_4
+    to: h_32
+    weight: -0.238531
+metadata:
+  source: neat_champion
+  origin: part1_npz
+  stage: stage_2_payload

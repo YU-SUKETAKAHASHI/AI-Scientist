@@ -1,0 +1,28 @@
+nodes:
+  - {id: in_0, type: input, activation: linear, label: agent_x}
+  - {id: in_1, type: input, activation: linear, label: agent_y}
+  - {id: in_2, type: input, activation: linear, label: agent_vx}
+  - {id: in_3, type: input, activation: linear, label: agent_vy}
+  - {id: in_4, type: input, activation: linear, label: ball_x}
+  - {id: in_5, type: input, activation: linear, label: ball_y}
+  - {id: in_6, type: input, activation: linear, label: ball_vx}
+  - {id: in_7, type: input, activation: linear, label: ball_vy}
+  - {id: in_8, type: input, activation: linear, label: opp_x}
+  - {id: in_9, type: input, activation: linear, label: opp_y}
+  - {id: in_10, type: input, activation: linear, label: opp_vx}
+  - {id: in_11, type: input, activation: linear, label: opp_vy}
+  - {id: h_0, type: hidden, activation: tanh, label: ball_tracker}
+  - {id: out_0, type: output, activation: tanh, label: left}
+  - {id: out_1, type: output, activation: tanh, label: right}
+  - {id: out_2, type: output, activation: tanh, label: jump}
+edges:
+  - {from: in_8, to: h_0, weight: 1.5}
+  - {from: in_9, to: h_0, weight: -1.0}
+  - {from: in_10, to: h_0, weight: 0.5}
+  - {from: h_0, to: out_0, weight: -0.7}
+  - {from: h_0, to: out_1, weight: 0.7}
+  - {from: in_9, to: out_2, weight: 0.4}
+  - {from: in_11, to: out_2, weight: -0.3}
+metadata:
+  format_id: sample
+  cycle: 0

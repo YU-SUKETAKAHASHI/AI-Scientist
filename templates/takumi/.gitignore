@@ -1,0 +1,23 @@
+# macOS metadata
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local secrets (already covered by AI-Scientist/.gitignore, double-guard)
+.env
+
+# 親 .gitignore (Python build パターン) で除外される lib/ data/ を本テンプレ
+# 配下では追跡対象に戻す.
+!lib/
+!data/
+
+# Run artifacts: AI Scientist の outer loop が生成する run_* と
+# experiment.py を手動で動かしたときの run_* は git 管理外.
+# 例外: run_0/final_info.json は AI Scientist の baseline 契約として必要.
+run_*/
+!run_0/
+run_0/*
+!run_0/final_info.json
