@@ -172,3 +172,8 @@ ICLR2022-OpenReviewData/
 templates/*/run_0/
 templates/*/*.png
 results/*
+
+# takumi template specific
+takumi_output/
+template_takumi/
+templates/takumi/ideas.json
