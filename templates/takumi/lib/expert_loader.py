@@ -180,7 +180,6 @@ def convert_neat_to_yaml(
 
     md = dict(metadata or {})
     md.setdefault("source", "neat_champion")
-    md.setdefault("stage", "stage_2_payload")  # Stage 2 で読み込むときの目印
     return Network(nodes=nodes, edges=edges, metadata=md)
 
 

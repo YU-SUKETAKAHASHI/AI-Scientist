@@ -7,7 +7,7 @@ import os.path as osp
 import shutil
 import sys
 import time
-import torch
+# import torch
 from aider.coders import Coder
 from aider.io import InputOutput
 from aider.models import Model
@@ -20,6 +20,12 @@ from ai_scientist.perform_review import perform_review, load_paper, perform_impr
 from ai_scientist.perform_writeup import perform_writeup, generate_latex
 
 NUM_REFLECTIONS = 3
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv("templates/takumi/.env", override=False)
+except ImportError:
+    pass
 
 
 def print_time():
@@ -95,7 +101,8 @@ def parse_arguments():
 def get_available_gpus(gpu_ids=None):
     if gpu_ids is not None:
         return [int(gpu_id) for gpu_id in gpu_ids.split(",")]
-    return list(range(torch.cuda.device_count()))
+    # return list(range(torch.cuda.device_count()))
+    return []
 
 
 def check_latex_dependencies():
@@ -356,6 +363,11 @@ if __name__ == "__main__":
             model=client_model,
             engine=args.engine,
         )
+    else:
+        # --skip-novelty-check では check_idea_novelty が呼ばれず
+        # idea["novel"] が付与されないため、全件 True として扱う.
+        for idea in ideas:
+            idea.setdefault("novel", True)
 
     with open(osp.join(base_dir, "ideas.json"), "w") as f:
         json.dump(ideas, f, indent=4)

@@ -5,8 +5,8 @@ produces three PNGs::
 
     learning_curves.png        — per-cycle score for each run
     ablation_comparison.png    — fitness_mean_100ep bar chart per run
-    stage_comparison.png       — Stage 1 vs Stage 2 fitness when both are
-                                  present for the same Skills components
+    genome_comparison.png      — show_genome=False vs True fitness when both
+                                  are present for the same Skills components
 
 This file is editable by Aider; rewrites should keep the three output paths
 because perform_experiments.py expects ``plot.py`` to be re-runnable.
@@ -86,29 +86,32 @@ def plot_ablation_bars(runs: List[Tuple[str, Dict[str, object]]], out: Path) -> 
     plt.close(fig)
 
 
-def plot_stage_comparison(runs: List[Tuple[str, Dict[str, object]]], out: Path) -> None:
-    by_components: Dict[str, Dict[str, float]] = {}
+def plot_genome_comparison(runs: List[Tuple[str, Dict[str, object]]], out: Path) -> None:
+    """show_genome=False vs True を同一 components で並べる paired bar chart."""
+    by_components: Dict[str, Dict[bool, float]] = {}
     for _name, m in runs:
         comps = str(m.get("components_used", "S1+S2"))
-        stage = str(m.get("stage", "stage_1"))
-        by_components.setdefault(comps, {})[stage] = float(
+        if "show_genome" not in m:
+            continue  # legacy run (no show_genome key) — skip
+        flag = bool(m["show_genome"])
+        by_components.setdefault(comps, {})[flag] = float(
             m.get("fitness_mean_100ep", 0.0)
         )
-    paired = {k: v for k, v in by_components.items() if "stage_1" in v and "stage_2" in v}
+    paired = {k: v for k, v in by_components.items() if False in v and True in v}
     if not paired:
         return
     fig, ax = plt.subplots(figsize=(7, 4.5))
     labels = list(paired.keys())
-    s1 = [paired[k]["stage_1"] for k in labels]
-    s2 = [paired[k]["stage_2"] for k in labels]
+    off = [paired[k][False] for k in labels]
+    on = [paired[k][True] for k in labels]
     x = range(len(labels))
     width = 0.4
-    ax.bar([i - width / 2 for i in x], s1, width=width, label="Stage 1")
-    ax.bar([i + width / 2 for i in x], s2, width=width, label="Stage 2")
+    ax.bar([i - width / 2 for i in x], off, width=width, label="show_genome=False")
+    ax.bar([i + width / 2 for i in x], on, width=width, label="show_genome=True")
     ax.set_xticks(list(x))
     ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
     ax.set_ylabel("fitness_mean_100ep")
-    ax.set_title("Stage 1 vs Stage 2 (same Skills components)")
+    ax.set_title("Genome visibility effect (same Skills components)")
     ax.legend()
     fig.tight_layout()
     fig.savefig(out, dpi=140)
@@ -120,7 +123,7 @@ def main() -> None:
     runs = _load_runs(here)
     plot_learning_curves(runs, here / "learning_curves.png")
     plot_ablation_bars(runs, here / "ablation_comparison.png")
-    plot_stage_comparison(runs, here / "stage_comparison.png")
+    plot_genome_comparison(runs, here / "genome_comparison.png")
     print(f"plot.py: wrote 3 figures from {len(runs)} runs")
 
 

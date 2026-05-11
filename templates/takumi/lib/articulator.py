@@ -1,8 +1,8 @@
-"""Expert 意識層 (Articulator) — Stage 1/2 で Skills file (Markdown) を生成する.
+"""Expert 意識層 (Articulator) — `show_genome: bool` で genome 可視性を切替えて Skills file (Markdown) を生成する.
 
 * Model: Opus 4 系 (env ``TAKUMI_ARTICULATOR_MODEL`` で上書き可能).
-* Stage 1: Inputs = trajectory のみ.
-* Stage 2: Inputs = trajectory + Expert 暗黙層 network YAML.
+* `show_genome=False` (旧 Stage 1): Inputs = trajectory のみ.
+* `show_genome=True`  (旧 Stage 2): Inputs = trajectory + Expert 暗黙層 network YAML.
 * 出力: Markdown. S1+S2 (fixed) と format_hypothesis.components で
   指定された S3-S12 sections を必ず含む.
 
@@ -171,7 +171,7 @@ def _format_hypothesis_components(format_hypothesis: Dict[str, Any]) -> List[str
 
 
 def _short_genome_summary(network_yaml: Dict[str, Any]) -> str:
-    """Stage 2 で genome を渡すときの small summary を作る (token 節約)."""
+    """`show_genome=True` で genome を渡すときの small summary を作る (token 節約)."""
     nodes = network_yaml.get("nodes") or []
     edges = network_yaml.get("edges") or []
     n_input = sum(1 for n in nodes if n.get("type") == "input")
@@ -186,7 +186,7 @@ def _short_genome_summary(network_yaml: Dict[str, Any]) -> str:
 
 
 def _render_genome_block(network: Dict[str, Any]) -> str:
-    """Stage 2 用に genome を YAML として埋め込む文字列を返す."""
+    """`show_genome=True` 用に genome を YAML として埋め込む文字列を返す."""
     yaml = YAML(typ="safe")
     yaml.default_flow_style = False
     yaml.indent(mapping=2, sequence=4, offset=2)
@@ -281,7 +281,7 @@ def _render_task_section(
     *,
     components: List[str],
     format_hypothesis: Dict[str, Any],
-    stage: int,
+    show_genome: bool,
     extra_instructions: Optional[str],
 ) -> str:
     """idea ごとに変わる dynamic 部分."""
@@ -290,7 +290,7 @@ def _render_task_section(
     parts.append(
         f"Skills format hypothesis: {json.dumps(format_hypothesis, ensure_ascii=False)}"
     )
-    parts.append(f"Stage: {stage}")
+    parts.append(f"show_genome: {show_genome}")
     if extra_instructions:
         parts.append(f"Extra instructions: {extra_instructions}")
     parts.append("")
@@ -301,8 +301,8 @@ def _render_task_section(
     parts.append(
         "For S1 (Goal) and S2 (Rules), emit the EXACT fixed text from the reference"
         " above. For other requested sections (S3..S12), generate content grounded in"
-        " the trajectory data (and genome if Stage 2), following the description"
-        " given for that section in the reference."
+        " the trajectory data (and genome if show_genome=True), following the"
+        " description given for that section in the reference."
     )
     parts.append("")
     parts.append(
@@ -318,7 +318,7 @@ def _build_user_blocks(
     *,
     components: List[str],
     format_hypothesis: Dict[str, Any],
-    stage: int,
+    show_genome: bool,
     trajectory_block: str,
     genome_block: Optional[str],
     extra_instructions: Optional[str],
@@ -328,8 +328,8 @@ def _build_user_blocks(
     構造 (上から順):
 
     1. **Reference** (static, 全 idea 共通): S1..S12 の完全リファレンス
-    2. **Trajectory** (static, Stage 1/2 共通): expert trajectory YAML
-    3. **Genome** (static, Stage 2 のみ): expert genome YAML
+    2. **Trajectory** (static, 共通): expert trajectory YAML
+    3. **Genome** (static, `show_genome=True` のみ): expert genome YAML
     4. **[cache_control: ephemeral]** が 3 (または無ければ 2) に付く ← cache breakpoint
     5. **Task** (dynamic, idea ごとに変わる): format_hypothesis + 必要 section リスト
 
@@ -343,7 +343,7 @@ def _build_user_blocks(
     # 1. Reference (全 idea で同一)
     blocks.append({"type": "text", "text": _render_all_sections_reference()})
 
-    # 2. Trajectory (Stage 1/2 共通; ~22k tokens で支配的)
+    # 2. Trajectory (show_genome on/off 共通; ~22k tokens で支配的)
     traj_section = (
         "=== EXPERT TRAJECTORY DATA (subsampled) ===\n"
         "```yaml\n"
@@ -352,10 +352,10 @@ def _build_user_blocks(
     )
     blocks.append({"type": "text", "text": traj_section})
 
-    # 3. Genome (Stage 2 のみ)
+    # 3. Genome (`show_genome=True` のみ)
     if genome_block is not None:
         genome_section = (
-            "=== EXPERT TACIT-LAYER NETWORK (Stage 2 — genome inspection) ===\n"
+            "=== EXPERT TACIT-LAYER NETWORK (show_genome=True — genome inspection) ===\n"
             "Reference the structure below when writing mechanistic statements such"
             " as 'the expert relies strongly on input ball.vy via h_32'.\n"
             "```yaml\n"
@@ -374,7 +374,7 @@ def _build_user_blocks(
             "text": _render_task_section(
                 components=components,
                 format_hypothesis=format_hypothesis,
-                stage=stage,
+                show_genome=show_genome,
                 extra_instructions=extra_instructions,
             ),
         }
@@ -436,7 +436,7 @@ class ArticulationResult:
 
     skills_markdown: str
     components_used: List[str]
-    stage: int
+    show_genome: bool
     model: str
     input_tokens: int
     output_tokens: int
@@ -462,7 +462,7 @@ def articulate_skills(
     format_hypothesis: Dict[str, Any],
     expert_trajectory: Dict[str, Any],
     *,
-    stage: int,
+    show_genome: bool = False,
     expert_genome: Optional[Dict[str, Any]] = None,
     model: Optional[str] = None,
     budget: Optional[BudgetTracker] = None,
@@ -477,17 +477,17 @@ def articulate_skills(
     Parameters
     ----------
     format_hypothesis : dict
-        ``{"components": [...], "instructions": <opt>}``. **stage は含めない**:
-        実験条件として ``stage`` 引数で渡す (config.yaml の experiment.stage が source).
+        ``{"components": [...], "show_genome": <bool>, "instructions": <opt>}``.
+        ``show_genome`` は AI Scientist が制御する 1 bit 軸. 呼び出し側で
+        format_hypothesis から取り出して下記 ``show_genome`` 引数に渡す.
     expert_trajectory : dict
         :func:`lib.expert_loader.collect_expert_trajectories` の出力 bundle.
-    stage : int
-        Articulator の access mode (1 or 2). 仕様書 §6 後半の判断に従い、
-        実験者が config.yaml で固定する条件. AI Scientist の outer loop は
-        この値を変えない.
+    show_genome : bool, default False
+        ``False`` (旧 Stage 1): trajectory のみで articulate.
+        ``True``  (旧 Stage 2): trajectory + Expert genome (network YAML) で articulate.
     expert_genome : dict or None
-        Stage 2 のときの :class:`lib.network.Network` の dict 表現
-        (``nodes``/``edges`` を持つ). Stage 1 では None.
+        ``show_genome=True`` のときの :class:`lib.network.Network` の dict 表現
+        (``nodes``/``edges`` を持つ). ``show_genome=False`` のときは無視.
     model : str or None
         override する model id. None なら env ``TAKUMI_ARTICULATOR_MODEL``、
         さらに無ければ ``claude-opus-4-7``.
@@ -510,11 +510,8 @@ def articulate_skills(
         生成 Markdown と metadata.
     """
     components = _format_hypothesis_components(format_hypothesis)
-    eff_stage = int(stage)
-    if eff_stage not in (1, 2):
-        raise ValueError(f"stage must be 1 or 2, got {eff_stage}")
-    if eff_stage == 2 and expert_genome is None:
-        raise ValueError("Stage 2 requires expert_genome to be provided")
+    if show_genome and expert_genome is None:
+        raise ValueError("show_genome=True requires expert_genome to be provided")
 
     model_id = (
         model
@@ -526,8 +523,8 @@ def articulate_skills(
         expert_trajectory, max_episodes=trajectory_episodes, precision=1
     )
     genome_block: Optional[str] = None
-    if eff_stage == 2 and expert_genome is not None:
-        # Stage 2 では full genome を埋め込む (network は <30 nodes 想定)
+    if show_genome and expert_genome is not None:
+        # full genome を埋め込む (network は <30 nodes 想定)
         genome_block = (
             _short_genome_summary(expert_genome)
             + "\n\n"
@@ -537,7 +534,7 @@ def articulate_skills(
     user_blocks = _build_user_blocks(
         components=components,
         format_hypothesis=format_hypothesis,
-        stage=eff_stage,
+        show_genome=show_genome,
         trajectory_block=trajectory_block,
         genome_block=genome_block,
         extra_instructions=extra_instructions,
@@ -598,7 +595,7 @@ def articulate_skills(
             cache_creation_input_tokens=last_cache_creation,
             cache_read_input_tokens=last_cache_read,
             note=(
-                f"stage={eff_stage} components={components} "
+                f"show_genome={show_genome} components={components} "
                 f"cache_write={last_cache_creation} cache_read={last_cache_read}"
             ),
         )
@@ -607,7 +604,7 @@ def articulate_skills(
     return ArticulationResult(
         skills_markdown=last_text,
         components_used=components,
-        stage=eff_stage,
+        show_genome=show_genome,
         model=model_id,
         input_tokens=last_in_tokens,
         output_tokens=last_out_tokens,

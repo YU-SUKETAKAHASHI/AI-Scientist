@@ -9,10 +9,10 @@ matplotlib
 pypdf
 pymupdf4llm
 # Common Requirements
-torch
-numpy
-transformers
-datasets
-tiktoken
-wandb
-tqdm
+# torch
+# numpy
+# transformers
+# datasets
+# tiktoken
+# wandb
+# tqdm

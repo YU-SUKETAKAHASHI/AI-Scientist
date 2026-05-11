@@ -4,9 +4,13 @@
 
 * :class:`TakumiConfig` — frozen dataclass で全設定を保持
 * :func:`load_config` — YAML → :class:`TakumiConfig`
-* バリデーション (stage ∈ {1,2}, K > 0, ...)
+* バリデーション (K > 0, env backend, budget 整合性, ...)
 
 を提供する. Aider 編集対象外 (Day 3 以降の outer loop で書き換わらない).
+
+Note (2026-05-11): Stage 概念 (`experiment.stage`) は廃止された.
+Articulator の genome 可視性は `FORMAT_HYPOTHESIS["show_genome"]: bool`
+で AI Scientist が制御する.
 """
 
 from __future__ import annotations
@@ -25,9 +29,12 @@ from ruamel.yaml import YAML
 
 @dataclass(frozen=True)
 class ExperimentSection:
-    """``experiment:`` ブロック (実験者が切替える主軸)."""
+    """``experiment:`` ブロック (実験者が固定する run-level label).
 
-    stage: int
+    Stage 概念は廃止. Articulator の genome 可視性は
+    `FORMAT_HYPOTHESIS["show_genome"]` で AI Scientist が選ぶ.
+    """
+
     run_label: str = "default"
 
 
@@ -164,7 +171,7 @@ class TakumiConfig:
     def with_overrides(self, **kwargs: Any) -> "TakumiConfig":
         """テスト用: 一部 field を上書きしたコピーを返す.
 
-        受け付ける形式は ``experiment={"stage": 2}`` のように section 単位.
+        受け付ける形式は ``experiment={"run_label": "alt"}`` のように section 単位.
         """
         out = self
         for section_name, override in kwargs.items():
@@ -214,11 +221,7 @@ def _build(payload: Dict[str, Any], source_path: Optional[Path]) -> TakumiConfig
             raise ValueError(f"config: missing section {sec!r}")
 
     exp_d = payload["experiment"]
-    stage = int(_require(exp_d, "stage", "experiment"))
-    if stage not in (1, 2):
-        raise ValueError(f"config.experiment.stage must be 1 or 2, got {stage}")
     experiment = ExperimentSection(
-        stage=stage,
         run_label=str(exp_d.get("run_label", "default")),
     )
 

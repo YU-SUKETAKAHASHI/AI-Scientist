@@ -5,17 +5,18 @@
 * :func:`compute_final_info` — AI Scientist 規約の ``final_info.json``
   ペイロードに整形する.
 
-Stage は :class:`lib.config.TakumiConfig` の ``experiment.stage`` から取る
-(format_hypothesis には含めない). 仕様書 §6 後半「Stage 1/Stage 2 を
-2 つの別 template として並走させる」を config 切替えで実現する設計.
+Articulator の genome 可視性は ``format_hypothesis["show_genome"]: bool`` で
+AI Scientist が制御する (旧 Stage 1/2 を 1 bit に統合).
 
-A0 baseline の `delta_score_vs_a0` が比較できないとき (= run_0 が無い時) は
-0.0 を返す. 後続実行は run_0/final_info.json を読み比較する.
+baseline (A0 = run_0) との比較は AI Scientist 自身が chat history 上の
+``run_0/final_info.json`` を参照して行う設計. eval.py 側で差分を pre-compute
+しない (`delta_score_vs_a0` 等は提供しない).
 """
 
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -145,8 +146,8 @@ def run_inner_loop(
     Parameters
     ----------
     format_hypothesis : dict
-        ``{"components": [...], "instructions": <opt>}``. **stage は含めない** —
-        config.experiment.stage を experiment-level の固定条件として使う.
+        ``{"components": [...], "show_genome": <bool>, "instructions": <opt>}``.
+        ``show_genome`` は AI Scientist が選ぶ 1 bit 軸 (default False).
     config : TakumiConfig
         実験者が編集する正本 (`templates/takumi/config.yaml`).
     out_dir : path
@@ -174,12 +175,12 @@ def run_inner_loop(
     play_episode, play_n_episodes = _select_env(config.env.backend)
 
     expert_trajectory = _load_yaml(config.expert_trajectory_path())
-    stage = config.experiment.stage
+    show_genome = bool(format_hypothesis.get("show_genome", False))
     expert_genome_dict: Optional[Dict[str, Any]] = None
-    if stage == 2:
+    if show_genome:
         expert_genome_dict = _load_yaml(config.expert_genome_path())
 
-    # ----- Step 1: Articulator (Stage 1 / Stage 2) -----
+    # ----- Step 1: Articulator (show_genome on/off) -----
     articulator_input_tokens = 0
     articulator_output_tokens = 0
     articulator_model = ""
@@ -196,7 +197,7 @@ def run_inner_loop(
         articulation = articulate_skills(
             format_hypothesis,
             expert_trajectory,
-            stage=stage,
+            show_genome=show_genome,
             expert_genome=expert_genome_dict,
             model=config.models.articulator,
             budget=budget,
@@ -217,6 +218,7 @@ def run_inner_loop(
     # ----- Step 2: Novice 暗黙層 init -----
     novice = init_minimal_network(seed=config.inner_loop.seed)
     serialize_network(novice, out_dir / "novice_init.yaml")
+    init_n_nodes, init_n_edges = _count_active(novice)
 
     # ----- Visualization helpers (closure over out_dir + config) -----
     viz = config.visualization
@@ -263,6 +265,9 @@ def run_inner_loop(
     mutator_input_tokens = 0
     mutator_output_tokens = 0
     mutator_model = ""
+    # mutator_strategy_summary 用に mutation を集計
+    mutation_type_counter: Counter = Counter()
+    edge_target_counter: Counter = Counter()
 
     K = config.inner_loop.K
     for cycle_idx in range(K):
@@ -323,6 +328,13 @@ def run_inner_loop(
             mutator_model = mres.model
 
         mutator_calls += 1
+        # mutator_strategy_summary 用に各 op を集計
+        for _m in mutations:
+            op = _m.get("op", "unknown")
+            mutation_type_counter[op] += 1
+            if op == "change_weight":
+                edge_str = f"{_m.get('from', '?')}->{_m.get('to', '?')}"
+                edge_target_counter[edge_str] += 1
         n_nodes, n_edges = _count_active(new_network)
         # 各 cycle 後 (mutation 適用直後) のネットワークを可視化保存
         _maybe_save_topology(
@@ -383,7 +395,7 @@ def run_inner_loop(
         try:
             curve_title = (
                 f"{config.experiment.run_label} · "
-                f"stage_{config.experiment.stage} · "
+                f"show_genome={show_genome} · "
                 f"components={'+'.join(components_used) if components_used else 'S1+S2'}"
             )
             fig = plot_inner_loop_history(
@@ -399,25 +411,31 @@ def run_inner_loop(
             print(f"[viz] learning_curve save failed: {exc}")
 
     # ----- compute means -----
-    skills_token_count = len(skills_md.split())  # crude proxy
     final_n_nodes, final_n_edges = _count_active(novice)
 
-    delta_vs_a0 = _compute_delta_vs_a0(Path(out_dir).parent, eval_result["mean"])
+    # mutator_strategy_summary (Option A: 構造化 raw)
+    best_reasoning = cycle_records[best_cycle].reasoning if cycle_records else ""
+    mutator_strategy_summary = {
+        "mutation_counts": dict(mutation_type_counter),
+        "topology_change": {
+            "nodes_delta": int(final_n_nodes - init_n_nodes),
+            "edges_delta": int(final_n_edges - init_n_edges),
+        },
+        "top_3_edge_targets": [e for e, _ in edge_target_counter.most_common(3)],
+        "best_cycle_reasoning_excerpt": best_reasoning,
+    }
 
     means: Dict[str, Any] = {
         "fitness_mean_100ep": float(eval_result["mean"]),
         "fitness_std_100ep": float(eval_result["std"]),
-        "delta_score_vs_a0": float(delta_vs_a0),
         "win_rate_at_best_cycle": float(eval_result["win_rate"]),
         "best_cycle_index": int(best_cycle),
         "learning_curve_scores": [float(s) for s in cycle_scores],
+        "components_used": "+".join(components_used) if components_used else "S1+S2",
+        "show_genome": bool(show_genome),
         "final_network_nodes": int(final_n_nodes),
         "final_network_links": int(final_n_edges),
-        "components_used": "+".join(components_used) if components_used else "S1+S2",
-        "stage": "stage_1" if stage == 1 else "stage_2",
-        "n_cycles": int(K),
-        "mutator_calls": int(mutator_calls),
-        "skills_file_token_count": int(skills_token_count),
+        "mutator_strategy_summary": mutator_strategy_summary,
     }
 
     # 詳細ログ (final_info.json には含めない)
@@ -453,20 +471,6 @@ def run_inner_loop(
     )
 
     return means
-
-
-def _compute_delta_vs_a0(parent_dir: Path, current_mean: float) -> float:
-    """run_0/final_info.json があれば mean を引いた値、無ければ 0.0."""
-    candidate = parent_dir / "run_0" / "final_info.json"
-    if not candidate.exists():
-        return 0.0
-    try:
-        payload = json.loads(candidate.read_text(encoding="utf-8"))
-        means = payload.get("skills_format_eval", {}).get("means", {})
-        a0 = float(means.get("fitness_mean_100ep", 0.0))
-    except Exception:
-        return 0.0
-    return float(current_mean) - a0
 
 
 def compute_final_info(means: Dict[str, Any]) -> Dict[str, Any]:

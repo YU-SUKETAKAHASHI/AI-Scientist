@@ -29,18 +29,38 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 _EVOJAX_PATH_ENV = "TAKUMI_EVOJAX_PATH"
-_DEFAULT_EVOJAX_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "ref_implementations"
-    / "evojax"
-)
+
+
+def _discover_default_evojax_path() -> Optional[Path]:
+    """このファイル位置から親方向に walk して ``ref_implementations/evojax`` を探す.
+
+    通常は ``templates/takumi/lib/`` (= parents[4] が Part5/) で見つかる. ただし
+    ``launch_scientist.py`` が templates を ``results/<idea_name>/`` にコピー
+    した場合は階層が 1 段深くなるため、固定 index ではなく walk-up で
+    discover する.
+    """
+    here = Path(__file__).resolve()
+    for ancestor in here.parents:
+        candidate = ancestor / "ref_implementations" / "evojax"
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _ensure_evojax_on_path() -> None:
     """EvoJAX のローカル clone を sys.path に積む (idempotent)."""
     custom = os.environ.get(_EVOJAX_PATH_ENV)
-    candidate = Path(custom) if custom else _DEFAULT_EVOJAX_PATH
-    candidate = candidate.resolve()
+    if custom:
+        candidate = Path(custom).resolve()
+    else:
+        discovered = _discover_default_evojax_path()
+        if discovered is None:
+            raise RuntimeError(
+                "EvoJAX path not discovered by walking parents from "
+                f"{Path(__file__).resolve()}. "
+                f"Set {_EVOJAX_PATH_ENV} env var to override."
+            )
+        candidate = discovered
     if not candidate.exists():
         raise RuntimeError(
             f"EvoJAX path not found at {candidate}. "

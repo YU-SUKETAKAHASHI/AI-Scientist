@@ -1,11 +1,10 @@
-# S1 micro sanity (K=2, eval=5).
+# Micro sanity (K=2, eval=5).
 # 目的: API key + model alias + 1 cycle articulator + 2 cycle mutator が
 # 実 API で動くかだけを最小コストで確認する.
 # 想定 cost: ~$0.05–0.15.
 
 experiment:
-  stage: 1
-  run_label: "s1_sanity"
+  run_label: "sanity"
 
 env:
   backend: jax
@@ -20,7 +19,7 @@ inner_loop:
   max_steps_per_episode: 3000
 
 models:
-  articulator: claude-opus-4-7
+  articulator: claude-haiku-4-5
   mutator: claude-haiku-4-5
 
 articulator_params:

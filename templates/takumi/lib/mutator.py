@@ -58,7 +58,6 @@ MUTATOR_SYSTEM_PROMPT_TEMPLATE = (
     "- Output MUST be valid YAML matching the schema described in the user message. "
     "No prose outside the YAML.\n"
     "- Keep your `reasoning:` field UNDER 400 WORDS (about 2500 characters). "
-    "Reference only the 2-3 most decisive Skills rules; do NOT enumerate every "
     "section that could be relevant. Finish reasoning quickly so the YAML "
     "mutations block fits within the output token budget.\n"
 )

@@ -22,13 +22,13 @@ from lib.mutator import (  # noqa: E402
 
 
 def test_format_hypothesis_components_dedup_and_filter() -> None:
-    fh = {"components": ["S6", "s3", "S99", "S6"], "stage": 1}
+    fh = {"components": ["S6", "s3", "S99", "S6"], "show_genome": False}
     out = _format_hypothesis_components(fh)
     assert out == ["S1", "S2", "S6", "S3"]
 
 
 def test_render_minimal_skills_contains_required_sections() -> None:
-    md = render_minimal_skills({"components": ["S3", "S7"], "stage": 1})
+    md = render_minimal_skills({"components": ["S3", "S7"], "show_genome": False})
     missing = _validate_skills(md, ["S1", "S2", "S3", "S7"])
     assert missing == []
     assert SECTION_FIXED_TEXTS["S1"][:30] in md

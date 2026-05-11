@@ -13,7 +13,7 @@ YAML schema
       - {from: <node id>, to: <node id>, weight: <float>}
       - ...
     metadata:        # optional
-      stage: <"stage_1"|"stage_2">
+      source: <str>
       cycle: <int>
       format_id: <str>
 

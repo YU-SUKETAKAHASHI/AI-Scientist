@@ -2,24 +2,19 @@
 #
 # このファイルは Aider の編集対象から除外される (templates/takumi/lib/ と同じ扱い).
 # AI Scientist の outer loop が iterate するのは experiment.py の FORMAT_HYPOTHESIS
-# だけ. Stage 設定 / inner loop の長さ / LLM model / temperature 等の
-# experimental condition は本ファイルで実験者が固定する.
+# だけ. inner loop の長さ / LLM model / temperature 等の experimental condition は
+# 本ファイルで実験者が固定する.
 #
-# 仕様書 §6 後半「Stage 1/Stage 2 を 2 つの別 template として並走させる」を
-# config 切替えで実現する: stage を 1 と 2 に切替えて outer loop を 2 回回す.
+# Note (2026-05-11): Stage 概念 (旧 experiment.stage) は廃止. Articulator の
+# genome 可視性は FORMAT_HYPOTHESIS["show_genome"]: bool で AI Scientist が
+# idea 単位に選択する.
 
 # ---------------------------------------------------------------------------
-# Experimental condition (実験者が手で切替える主軸)
+# Experiment-level label (run の識別用ラベルのみ)
 # ---------------------------------------------------------------------------
 experiment:
-  # Articulator の access mode.
-  #   1 = trajectory のみ (Polanyi の "we know more than we can tell" 厳密実装)
-  #   2 = trajectory + expert genome YAML
-  # サブ目的 (cognition measurement) の検証は同一 components を 1/2 で走らせて Δ を比較.
-  stage: 1
-
   # 出力 run の prefix (任意のラベル). final_info.json には記録されないが運用上の目印.
-  run_label: "stage1_default"
+  run_label: "default"
 
 # ---------------------------------------------------------------------------
 # Environment backend (§4 / §5)
@@ -50,7 +45,7 @@ inner_loop:
 # LLM model selection
 # ---------------------------------------------------------------------------
 models:
-  articulator: claude-opus-4-7      # Expert 意識層 (Stage 1/2 の Skills 生成)
+  articulator: claude-haiku-4-5      # Expert 意識層 (Skills 生成, show_genome on/off)
   mutator: claude-haiku-4-5         # Novice 意識層. A1_v3 で品質が十分と確認し、
                                     # sonnet → haiku に変更 (cost ~1/3). caching の
                                     # 最小 prefix は haiku で 2048 tokens.
